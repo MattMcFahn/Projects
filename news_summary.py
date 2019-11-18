@@ -77,6 +77,24 @@ def simple_get(url):
 
 # TODO - WRITE CODE TO IMPORT PAGES FROM SITES
 
+
+############################ Guardian
+guardian_html_RAW = simple_get(r'https://www.theguardian.com/world')
+guardian_html = BeautifulSoup(guardian_html_RAW, 'html.parser')
+
+# Using developer tools, we see we want the html slice where 'div class' = "tabs__content js-tabs-content"
+# We might need to refine further, but for now we atleast select the chunk needed!
+guardian_html_chunk = guardian_html.findAll("div", {"class": "tabs__content js-tabs-content"})
+
+# cut_chunk gets the specific pieces that are needed but I still need to explore what it does
+# It picks out the relevant elements, but also appears to select non-relevant elements too
+cut_chunk = guardian_html.findAll("h3", { "class": "fc-item__title"})
+
+viewing = [str(cut_chunk[i]) for i in range(0,len(cut_chunk))]
+
+
+tester_chunk = guardian_html.findAll("li", {"class": "most-popular__item tone-news--most-popular fc-item--pillar-news"})
+viewer_two = [str(tester_chunk[i]) for i in range(0,len(tester_chunk))]
 ##################################################################################
 # End of data import section
 ##################################################################################
