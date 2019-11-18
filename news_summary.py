@@ -92,6 +92,9 @@ cut_chunk = guardian_html.findAll("h3", { "class": "fc-item__title"})
 
 viewing = [str(cut_chunk[i]) for i in range(0,len(cut_chunk))]
 
+
+tester_chunk = guardian_html.findAll("li", {"class": "most-popular__item tone-news--most-popular fc-item--pillar-news"})
+viewer_two = [str(tester_chunk[i]) for i in range(0,len(tester_chunk))]
 ##################################################################################
 # End of data import section
 ##################################################################################
