@@ -15,6 +15,19 @@ News sites currently covered:
 Created on Sun Nov 17 19:44:39 2019
 
 @author: mattm
+
+TO DO (short term):
+    - Extract other info from the last 5 papers;
+    - Build out cleaning and gathering process to send data to;
+    - Implement as background process daily;
+    - Build in error warnings & stats;
+    - Build front end of notification & web display.
+
+TO DO (long term):
+    - Build functions & functionality to extract the images, and first three paras of the article;
+    - Review and refine popularity tags and stats to implement smart searching;
+    - Build higher quality front end.
+    
 """
 
 # Import libraries. 
@@ -79,22 +92,56 @@ def simple_get(url):
 
 
 ############################ Guardian
+    #Pull html and pass to BeautifulSoup
 guardian_html_RAW = simple_get(r'https://www.theguardian.com/world')
 guardian_html = BeautifulSoup(guardian_html_RAW, 'html.parser')
 
-# Using developer tools, we see we want the html slice where 'div class' = "tabs__content js-tabs-content"
-# We might need to refine further, but for now we atleast select the chunk needed!
-guardian_html_chunk = guardian_html.findAll("div", {"class": "tabs__content js-tabs-content"})
 
-# cut_chunk gets the specific pieces that are needed but I still need to explore what it does
-# It picks out the relevant elements, but also appears to select non-relevant elements too
-cut_chunk = guardian_html.findAll("h3", { "class": "fc-item__title"})
+# Using developer tools on the Guardian webpage, we see we want the section of html where 
+# 'li' - we have list items. And identified by "class" = "most-popular__item tone-news--most-popular fc-item--pillar-news"
+# However, this drops one "long read" included in the collection of 'Most viewed' articles. This one is also kept, seperately.
+guardian_html_chunk = guardian_html.findAll("li", {"class": "most-popular__item tone-news--most-popular fc-item--pillar-news"})
+long_read_html_chunk = guardian_html.findAll("li", {"class": "most-popular__item tone-feature--most-popular fc-item--pillar-news"})
+type(guardian_html_chunk) #Displays the type as bs4.element.ResultSet
 
-viewing = [str(cut_chunk[i]) for i in range(0,len(cut_chunk))]
+# EXPLORING DATA - TO REMOVE IN TIDYING
+list_of_element_extr = [str(guardian_html_chunk[i]) for i in range(0,len(guardian_html_chunk))]
+list_of_text_extr = [guardian_html_chunk[i].get_text() for i in range(0,len(guardian_html_chunk))]
 
+str_of_element_extr = ''
+str_of_text_extr = ''
+for i in range(0, len(list_of_text_extr),1):
+    str_of_element_extr += list_of_element_extr[i]+'\n\n'
+    str_of_text_extr += list_of_text_extr[i]+'\n\n'
 
-tester_chunk = guardian_html.findAll("li", {"class": "most-popular__item tone-news--most-popular fc-item--pillar-news"})
-viewer_two = [str(tester_chunk[i]) for i in range(0,len(tester_chunk))]
+str_of_element_extr += '\n\n-------------------\n\n'+str(long_read_html_chunk)
+str_of_text_extr += '-------------------\n\n'+long_read_html_chunk[0].get_text()
+# The above give strings displaying the element, and text data extracted from the page
+# EXPLORING DATA - TO REMOVE IN TIDYING
+
+# A bit of exploring pulling out information:
+guardian_html_chunk[0].a['href'] #THIS PULLS OUT THE WEBLINK FOR THE ARTICLE 
+#(NOTE: .h3 or .a pulls out that tag. THINK OF THESE DATA STRUCTURES LIKE A TREE)
+guardian_html_chunk[0].a
+guardian_html_chunk[0].span #Check this - it picks the first span in the tree (too much for us)
+guardian_html_chunk[0].a.span.span #Et viola! We have the element with the desired text. We have traversed the tree!
+###################################
+
+################################## Proper data pull out
+guardian_extract = []
+for i in range(0,len(guardian_html_chunk)):
+    headline = guardian_html_chunk[i].a.span.span.get_text()
+    link = guardian_html_chunk[i].a['href']
+    # Probably want to write something as a seperate function - access guardian link
+    # and pull any extra relevant info from there :)
+    #temp_html_RAW = simple_get(link)
+    #temp_html = BeautifulSoup(temp_html_RAW, 'html.parser')
+    ##################### The above has been left in but should be called as sep function 
+    # Would be good to extract (1) image, and (2) leading three paras. FOR A FUTURE BUILD
+    guardian_extract += [[headline, link]]
+
+############################ Guardian
+
 ##################################################################################
 # End of data import section
 ##################################################################################
