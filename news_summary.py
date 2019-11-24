@@ -26,6 +26,7 @@ TO DO (short term):
 TO DO (long term):
     - Build functions & functionality to extract the images, and first three paras of the article;
     - Review and refine popularity tags and stats to implement smart searching;
+    - Figure out when sites are updated and time stamp information;
     - Build higher quality front end.
     
 """
@@ -40,62 +41,15 @@ from contextlib import closing
 from bs4 import BeautifulSoup
 import extract_news
 
-errors = [] #Initialize string to store a log of errors that arise.
-
-##################################################################################
-# Set up supporting functions for main task
-##################################################################################
-
-def log_error(current_error):
-    """
-    (str) -> List addition
-    Adds a current error onto the error log list.
-    """
-    global errors #Call in the global variable as we are about to modify it
-    errors += [current_error]
-
-def is_good_response(resp):
-    """
-    Returns True if the response seems to be HTML, False otherwise.
-    """
-    content_type = resp.headers['Content-Type'].lower()
-    return (resp.status_code == 200 #The HTML response status code for 'OK' is 200.
-            and content_type is not None  # Non empty return
-            and content_type.find('html') > -1)
-
-def simple_get(url):
-    """
-    (str) -> str
-    Attempts to get the content at `url` by making an HTTP GET request.
-    If the content-type of response is some kind of HTML/XML, return the
-    text content, otherwise return None.
-    """
-    try:
-        with closing(get(url, stream=True)) as resp:
-            if is_good_response(resp):
-                return resp.content
-            else:
-                return None
-    except RequestException as e:
-        error_message = 'Error during requests to {0} : {1}'.format(url, str(e))
-        print(error_message)
-        log_error(error_message)
-        return None
-
-
-
 
 ##################################################################################
 # Import html data from several webpages
 ##################################################################################
 
-# TODO - WRITE CODE TO IMPORT PAGES FROM SITES
-
-
-############################ Guardian
 guardian_extract = extract_news.retrieve_guardian_most_viewed()
-
-############################ The Times
+times_extract = extract_news.retrieve_times_world_page()
+economist_extract = extract_news.retrieve_economist_most_viewed()
+ft_extract = extract_news.retrieve_FT_most_viewed()
 
 
 ###########################
@@ -103,37 +57,6 @@ guardian_extract = extract_news.retrieve_guardian_most_viewed()
 ##################################################################################
 # End of data import section
 ##################################################################################
-
-
-
-
-
-
-##################################################################################
-# Extract specific information from html using BeautifulSoup
-##################################################################################
-
-# TODO - WRITE CODE FOR DATA EXTRACTION
-
-##################################################################################
-# End of data extraction section
-##################################################################################
-
-
-
-
-
-
-##################################################################################
-# Transformation of extracted data into a useful format
-##################################################################################
-
-# TODO - WRITE CODE FOR ANY NECESSARY TRANSFORMATION
-
-##################################################################################
-# End of data transformation section
-##################################################################################
-
 
 
 

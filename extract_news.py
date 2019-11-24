@@ -4,6 +4,17 @@ Backup script containing functions to pull most viewed stories from news sites
 
 News sites currently covered:
     - The Guardian;
+    - The Times;
+    - The Economist;
+    - The Financial Times;
+    - The Independent.
+    
+NOTE: A key 'to-do' will be to go back and extract extra info - i.e. leading paras from the stories, and images
+and so forth. To build and kind of decent looking front end, this will all be needed.
+
+BIG NOTE: Need to start randomising User-Agents and IP Addresses to stop getting blocked from scraping.
+      This webpage https://www.scrapehero.com/how-to-fake-and-rotate-user-agents-using-python-3/
+      Is useful in teaching how to do this.
 
 Created on Fri Nov 22 09:43:18 2019
 
@@ -18,6 +29,7 @@ from requests import get
 from requests.exceptions import RequestException
 from contextlib import closing
 from bs4 import BeautifulSoup
+import pandas as pd
 
 
 errors = [] #Initialize string to store a log of errors that arise.
@@ -50,17 +62,30 @@ def simple_get(url):
     If the content-type of response is some kind of HTML/XML, return the
     text content, otherwise return None.
     """
-    try:
-        with closing(get(url, stream=True)) as resp:
-            if is_good_response(resp):
-                return resp.content
-            else:
-                return None
-    except RequestException as e:
-        error_message = 'Error during requests to {0} : {1}'.format(url, str(e))
-        print(error_message)
-        log_error(error_message)
-        return None
+    if get(url, stream=True).status_code == 404:
+        try:
+            with closing(get(url, stream=True, headers={'User-Agent': 'Custom'})) as resp:
+                if is_good_response(resp):
+                    return resp.content
+                else:
+                    return None
+        except RequestException as e:
+            error_message = 'Error during requests to {0} : {1}'.format(url, str(e))
+            print(error_message)
+            log_error(error_message)
+            return None
+    else:
+        try:
+            with closing(get(url, stream=True)) as resp:
+                if is_good_response(resp):
+                    return resp.content
+                else:
+                    return None
+        except RequestException as e:
+            error_message = 'Error during requests to {0} : {1}'.format(url, str(e))
+            print(error_message)
+            log_error(error_message)
+            return None
 
 ##################################################################################
 # Set up supporting functions  - Finished
@@ -88,8 +113,7 @@ def retrieve_guardian_most_viewed():
     long_read_html_chunk = guardian_html.findAll("li", {"class": "most-popular__item tone-feature--most-popular fc-item--pillar-news"})
     
     
-    
-    guardian_extract = []
+    guardian_extract = pd.DataFrame()
     for i in range(0,len(guardian_html_chunk)):
         headline = guardian_html_chunk[i].a.span.span.get_text()
         link = guardian_html_chunk[i].a['href']
@@ -100,39 +124,115 @@ def retrieve_guardian_most_viewed():
         #temp_html = BeautifulSoup(temp_html_RAW, 'html.parser')
         ##################### The above has been left in but should be called as sep function 
         # Would be good to extract (1) image, and (2) leading three paras. FOR A FUTURE BUILD
-        guardian_extract += [['Most viewed - News',headline, link]]
+        guardian_frame = pd.DataFrame(data = ['Guardian','Most viewed - News',str(headline), str(link)]).T
+        guardian_extract = guardian_extract.append(guardian_frame)
     for i in range(0,len(long_read_html_chunk)):
         headline = guardian_html_chunk[i].a.span.span.get_text()
         link = guardian_html_chunk[i].a['href']
-        guardian_extract += [['Most viewed - Longread',headline, link]]
+        guardian_frame = pd.DataFrame(data = ['Guardian','Most viewed - Longread',str(headline), str(link)]).T
+        guardian_extract = guardian_extract.append(guardian_frame)
+    guardian_extract = guardian_extract.rename(columns = {0:'Source', 1:'Type', 2:'Headline', 3:'Link'})
     return(guardian_extract)
     
 # The Times
 def retrieve_times_world_page():
+    """
+    None -> pd.DataFrame
+    Returns information about the top stories on The Times' homepage.
+    NOTE: This could probably do with being tidied. The Times source code has a weird layout
+    """
     times_html_RAW = simple_get(r'https://www.thetimes.co.uk/#section-world')
     times_html = BeautifulSoup(times_html_RAW, 'html.parser')
-    times_html_extr = times_html.body.section.div.section
     
-    times_html_chunk = times_html_extr.findAll("div", {"class":"Slice"})
-    # Looking at dev tools, we only want first three eles
-    times_html_ch_short = times_html_chunk[0:3]
+    temp = times_html.body.section.div.section
+    temp = temp.findAll("div", {"class":"SliceCollection"})[0]
+    times_html_extr = temp.findAll("div", {"class":"Slice"})[0:2]
+        
+    times_extract = pd.DataFrame()
+    for i in range(0,len(times_html_extr)):
+        curr_chunk = times_html_extr[i].contents #NOTE: .contents finds the children of a node! :)
+        for j in range(0,len(curr_chunk)):
+            #full_text = curr_chunk[j].get_text() # Unused for now - We can extract intro para text here (for i=0 only)
+            if i == 0:
+                headline = curr_chunk[j].a.get_text() #First section of the nested for-loop has a diff structure
+            else:
+                headline = curr_chunk[j].get_text()
+            link = curr_chunk[j].a['href']
+            times_frame = pd.DataFrame(data = ['Times', 'Headlines', str(headline), str(link)]).T
+            times_extract = times_extract.append(times_frame)
+    times_extract = times_extract.rename(columns = {0:'Source', 1:'Type', 2:'Headline', 3:'Link'})
+    return(times_extract)
+
+
+def retrieve_economist_most_viewed():
+    """
+    None -> pd.DataFrame
+    Pulls out top 4 articles for now, and their links
+    """
+    economist_html_RAW = simple_get(r'https://www.economist.com/')
+    economist_html = BeautifulSoup(economist_html_RAW, 'html.parser')
+
+
+    temp = economist_html.body.div.div
+    temp2 = temp.findAll('div', {"class": "standout-content"})[0].div.main.div.div.div.div.div.div.ul
+    economist_html_extr = temp2.findAll('li')
     
-    # Bit messy at the moment, but this pulls the first two needed (some duplication)!
-    # Looks like we'll need nested for loops to traverse three branches :(
-    times_tester = times_html_ch_short[0].div.findAll('div')
-    times_tester_2 = times_tester.findAll('div')
-    # Would iterate over i instead of 0 below
-    testing = times_tester_2[0].div.h3
-    for i in range(0,len(times_tester)):
-        curr_chunk = times_html_ch_short[i].div.findAll('div')
-        curr_chunk_list = curr_chunk.findAll('div')
-        for j in 
+    economist_extract = pd.DataFrame()
+    for i in range(0,len(economist_html_extr)):
+        curr_chunk = economist_html_extr[i]
+        full_text = curr_chunk.get_text()
+        text_extr_ele_1 = curr_chunk.findAll('span', {'class':'flytitle-and-title__flytitle'})[0].get_text()
+        text_extr_ele_2 = curr_chunk.findAll('span', {'class':'flytitle-and-title__title'})[0].get_text()
+        headline = text_extr_ele_1 +': \n' +text_extr_ele_2
+        link = curr_chunk.article.a['href']
+        economist_frame = pd.DataFrame(data = ['Economist', 'Headlines', str(headline), str(link)]).T
+        economist_extract = economist_extract.append(economist_frame)
+    economist_extract = economist_extract.rename(columns = {0:'Source', 1:'Type', 2:'Headline', 3:'Link'})
+    return(economist_extract)
+    
+def retrieve_FT_most_viewed():
+    """
+    None -> pd.DataFrame
+    Extracts the top 5 "most viewed" from the world home page, from the sidebar.
+    """
+    ft_html_RAW = simple_get(r'https://www.ft.com/world')
+    ft_html = BeautifulSoup(ft_html_RAW, 'html.parser')
+    ######### NOTE - These temps show the main ones, not sidebar where "most viewed is"
+    #temp = ft_html.findAll('div', {'class' :'css-grid__container'})[0].div.div
+    #temp2 = temp.findAll('div', {'class':'o-teaser__content'})
+    #############
+    
+    ft_html_extr = ft_html.findAll('div', {'class' :'css-grid__sidebar-item'})[1].div.div
+    temp = ft_html_extr.findAll('li')
+    ft_extract = pd.DataFrame()
+    for i in range(0,len(temp)):
+        curr_chunk = temp[i]
         headline = curr_chunk.get_text()
-        link = times_tester.a['href']
+        link = curr_chunk.div.div.div.a['href']
+        ft_frame = pd.DataFrame(data = ['Financial Times', 'Most Viewed', str(headline), str(link)]).T
+        ft_extract = ft_extract.append(ft_frame)
+    ft_extract = ft_extract.rename(columns = {0:'Source', 1:'Type', 2:'Headline', 3:'Link'})
+    return(ft_extract)
+
+def retrieve_independent_top_stories():
+    """
+    None -> pd.DataFrame
+    Extracts top stories from homepage.
+    """
+    indep_html_RAW= simple_get(r'https://www.independent.co.uk')
+    # NOTE - I had to mess with simple_get because requests.get(url) returns a 404. It's a weak fix for now.
+    # This was because of independent.co.uk blocking User-Agent as python.
+    # Longer term, need to randomise User-Agent and ID that are sent. It'd be good if I could actually learn what is happening behind this!
+    indep_html = BeautifulSoup(indep_html_RAW, 'html.parser')
+
+    indep_html_cut = indep_html.body.section    
     
-    list_times_text = [times_html_ch_short[i].get_text() for i in range(0,len(times_html_ch_short))]
-    list_times_eles = [str(times_html_ch_short[i]) for i in range(0,len(times_html_ch_short))]
-    for i in range(0,len(times_html_chunk))
+    indep_html_extr_8_block = indep_html_cut.findAll('div', {'class':'eight-articles-dmpu position-left'})[0]
+    indep_html_top = indep_html_cut.findAll('div', {'class':'splash-row'})[0]
+    indep_html_extr = [indep_html_extr_8_block, indep_html_top]
+    # Have given up for now - too bored doing the same old scraping! :) 
+    
+    
     
 ##################################################################################
 # Functions to pull from webpages - END
