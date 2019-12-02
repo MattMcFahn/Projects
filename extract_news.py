@@ -21,21 +21,18 @@ Created on Fri Nov 22 09:43:18 2019
 @author: Matthew.McFahn
 """
 
-# Import libraries. 
-# - requests: For HTTP requests (pulls html into a bytes data type for wrangling); 
-# - BeautifulSoup: For webscraping. Works with bytes/html pulled via requests;
-# - closing: For good practice to ensure closing of connections to webpage on exiting with commands.
-from requests import get
-from requests.exceptions import RequestException
-from contextlib import closing
-from bs4 import BeautifulSoup
+############## Import libraries
+from requests import get #For HTTP requests (pulls html into a bytes data type for wrangling)
+from requests.exceptions import RequestException 
+from contextlib import closing #For good practice to ensure closing of connections to webpage on exiting with commands.
+from bs4 import BeautifulSoup # For webscraping. Works with bytes/html pulled via requests
 import pandas as pd
-
+import datetime
 
 errors = [] #Initialize string to store a log of errors that arise.
 
 ##################################################################################
-# Set up supporting functions for main task
+# Set up supporting functions for main functions
 ##################################################################################
 
 def log_error(current_error):
@@ -62,7 +59,8 @@ def simple_get(url):
     If the content-type of response is some kind of HTML/XML, return the
     text content, otherwise return None.
     """
-    if get(url, stream=True).status_code == 404:
+    if get(url, stream=True).status_code == 404: #The following clause circumvents the issue of python User-Agents being blocked.
+        # TODO - In future, randomise User-Agents and IP addresses for requests.get requests.
         try:
             with closing(get(url, stream=True, headers={'User-Agent': 'Custom'})) as resp:
                 if is_good_response(resp):
@@ -101,9 +99,10 @@ def retrieve_guardian_most_viewed():
     """
     None -> List
     Returns a list of tagged headlines and news links from The Guardian's main page,
-    extracting most viewed stories
+    extracting most viewed stories (plus timestamp)
     """
     guardian_html_RAW = simple_get(r'https://www.theguardian.com/world')
+    retrieval_datetime = datetime.datetime.now()
     guardian_html = BeautifulSoup(guardian_html_RAW, 'html.parser')
     
     # Using developer tools on the Guardian webpage, we see we want the section of html where 
@@ -124,14 +123,19 @@ def retrieve_guardian_most_viewed():
         #temp_html = BeautifulSoup(temp_html_RAW, 'html.parser')
         ##################### The above has been left in but should be called as sep function 
         # Would be good to extract (1) image, and (2) leading three paras. FOR A FUTURE BUILD
-        guardian_frame = pd.DataFrame(data = ['Guardian','Most viewed - News',str(headline), str(link)]).T
+        guardian_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
+                                              retrieval_datetime.day,retrieval_datetime.hour,\
+                                              retrieval_datetime.minute,'Guardian','Most viewed - News',str(headline), str(link)]).T
         guardian_extract = guardian_extract.append(guardian_frame)
     for i in range(0,len(long_read_html_chunk)):
         headline = guardian_html_chunk[i].a.span.span.get_text()
         link = guardian_html_chunk[i].a['href']
-        guardian_frame = pd.DataFrame(data = ['Guardian','Most viewed - Longread',str(headline), str(link)]).T
+        guardian_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
+                                              retrieval_datetime.day,retrieval_datetime.hour,\
+                                              retrieval_datetime.minute,'Guardian','Most viewed - Longread',str(headline), str(link)]).T
         guardian_extract = guardian_extract.append(guardian_frame)
-    guardian_extract = guardian_extract.rename(columns = {0:'Source', 1:'Type', 2:'Headline', 3:'Link'})
+    guardian_extract = guardian_extract.rename(columns = {0:'Year',1:'Month',2:'Day',3:'Hour',4:'Minute',\
+                                                          5:'Source', 6:'Type', 7:'Headline', 8:'Link'})
     return(guardian_extract)
     
 # The Times
@@ -142,6 +146,7 @@ def retrieve_times_world_page():
     NOTE: This could probably do with being tidied. The Times source code has a weird layout
     """
     times_html_RAW = simple_get(r'https://www.thetimes.co.uk/#section-world')
+    retrieval_datetime = datetime.datetime.now()
     times_html = BeautifulSoup(times_html_RAW, 'html.parser')
     
     temp = times_html.body.section.div.section
@@ -158,9 +163,12 @@ def retrieve_times_world_page():
             else:
                 headline = curr_chunk[j].get_text()
             link = curr_chunk[j].a['href']
-            times_frame = pd.DataFrame(data = ['Times', 'Headlines', str(headline), str(link)]).T
+            times_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
+                                              retrieval_datetime.day,retrieval_datetime.hour,\
+                                              retrieval_datetime.minute,'Times', 'Headlines', str(headline), str(link)]).T
             times_extract = times_extract.append(times_frame)
-    times_extract = times_extract.rename(columns = {0:'Source', 1:'Type', 2:'Headline', 3:'Link'})
+    times_extract = times_extract.rename(columns = {0:'Year',1:'Month',2:'Day',3:'Hour',4:'Minute',\
+                                                          5:'Source', 6:'Type', 7:'Headline', 8:'Link'})
     return(times_extract)
 
 
@@ -170,6 +178,7 @@ def retrieve_economist_most_viewed():
     Pulls out top 4 articles for now, and their links
     """
     economist_html_RAW = simple_get(r'https://www.economist.com/')
+    retrieval_datetime = datetime.datetime.now()
     economist_html = BeautifulSoup(economist_html_RAW, 'html.parser')
 
 
@@ -185,9 +194,12 @@ def retrieve_economist_most_viewed():
         text_extr_ele_2 = curr_chunk.findAll('span', {'class':'flytitle-and-title__title'})[0].get_text()
         headline = text_extr_ele_1 +': \n' +text_extr_ele_2
         link = curr_chunk.article.a['href']
-        economist_frame = pd.DataFrame(data = ['Economist', 'Headlines', str(headline), str(link)]).T
+        economist_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
+                                              retrieval_datetime.day,retrieval_datetime.hour,\
+                                              retrieval_datetime.minute,'Economist', 'Headlines', str(headline), str(link)]).T
         economist_extract = economist_extract.append(economist_frame)
-    economist_extract = economist_extract.rename(columns = {0:'Source', 1:'Type', 2:'Headline', 3:'Link'})
+    economist_extract = economist_extract.rename(columns = {0:'Year',1:'Month',2:'Day',3:'Hour',4:'Minute',\
+                                                            5:'Source', 6:'Type', 7:'Headline', 8:'Link'})
     return(economist_extract)
     
 def retrieve_FT_most_viewed():
@@ -196,6 +208,7 @@ def retrieve_FT_most_viewed():
     Extracts the top 5 "most viewed" from the world home page, from the sidebar.
     """
     ft_html_RAW = simple_get(r'https://www.ft.com/world')
+    retrieval_datetime = datetime.datetime.now()
     ft_html = BeautifulSoup(ft_html_RAW, 'html.parser')
     ######### NOTE - These temps show the main ones, not sidebar where "most viewed is"
     #temp = ft_html.findAll('div', {'class' :'css-grid__container'})[0].div.div
@@ -209,9 +222,12 @@ def retrieve_FT_most_viewed():
         curr_chunk = temp[i]
         headline = curr_chunk.get_text()
         link = curr_chunk.div.div.div.a['href']
-        ft_frame = pd.DataFrame(data = ['Financial Times', 'Most Viewed', str(headline), str(link)]).T
+        ft_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
+                                        retrieval_datetime.day,retrieval_datetime.hour,\
+                                        retrieval_datetime.minute,'Financial Times', 'Most Viewed', str(headline), str(link)]).T
         ft_extract = ft_extract.append(ft_frame)
-    ft_extract = ft_extract.rename(columns = {0:'Source', 1:'Type', 2:'Headline', 3:'Link'})
+    ft_extract = ft_extract.rename(columns = {0:'Year',1:'Month',2:'Day',3:'Hour',4:'Minute',\
+                                              5:'Source', 6:'Type', 7:'Headline', 8:'Link'})
     return(ft_extract)
 
 def retrieve_independent_top_stories():
@@ -220,6 +236,7 @@ def retrieve_independent_top_stories():
     Extracts top stories from homepage.
     """
     indep_html_RAW= simple_get(r'https://www.independent.co.uk')
+    retrieval_datetime = datetime.datetime.now()
     # NOTE - I had to mess with simple_get because requests.get(url) returns a 404. It's a weak fix for now.
     # This was because of independent.co.uk blocking User-Agent as python.
     # Longer term, need to randomise User-Agent and ID that are sent. It'd be good if I could actually learn what is happening behind this!
