@@ -27,7 +27,7 @@ TO DO (long term):
 ############## Import libraries
 import extract_news # Self authored script - using BeautifulSoup, requests, closing, pandas
 import pandas as pd # For data storage
-
+import smtplib # For sending emails, which follow the SMTP protocol
 
 ##################################################################################
 # Import html data from several webpages
@@ -38,6 +38,10 @@ times_extract = extract_news.retrieve_times_world_page()
 economist_extract = extract_news.retrieve_economist_most_viewed()
 ft_extract = extract_news.retrieve_FT_most_viewed()
 # indep_extract = extract_news.retrieve_independent_top_stories()
+
+# Combine all
+news_df_list = [guardian_extract, times_extract, economist_extract, ft_extract]
+news_df = pd.concat(news_df_list)
 
 ##################################################################################
 # End of data import section
@@ -51,7 +55,16 @@ ft_extract = extract_news.retrieve_FT_most_viewed()
 # Update server information based on daily update. Also weekly email.
 ##################################################################################
 
-# TODO - WRITE FRONT END CODE TO SET UP AND UPDATE GIVEN SERVER
+# Sending an email automatically
+smtpObj = smtplib.SMTP('smtp.mail.yahoo.com', 587)
+smtpObj.ehlo()
+smtpObj.starttls()
+secret_password = input('''Please input your password to Yahoo email to send an automatic email.\n
+                        The email is a news summary, being sent to yourself.''')
+smtpObj.login('matthewmcfahn@yahoo.com', secret_password)
+#Add the rest for sending the email from automatetheboring
+
+# TODO - WRITE FRONT END CODE TO SET UP AND UPDATE A SQL SERVER
 
 ##################################################################################
 # End of server update code section

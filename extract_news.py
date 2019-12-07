@@ -12,7 +12,7 @@ News sites currently covered:
 NOTE: A key 'to-do' will be to go back and extract extra info - i.e. leading paras from the stories, and images
 and so forth. To build and kind of decent looking front end, this will all be needed.
 
-BIG NOTE: Need to start randomising User-Agents and IP Addresses to stop getting blocked from scraping.
+NOTE: Need to start randomising User-Agents and IP Addresses to stop getting blocked from scraping.
       This webpage https://www.scrapehero.com/how-to-fake-and-rotate-user-agents-using-python-3/
       Is useful in teaching how to do this.
 
@@ -123,9 +123,8 @@ def retrieve_guardian_most_viewed():
         #temp_html = BeautifulSoup(temp_html_RAW, 'html.parser')
         ##################### The above has been left in but should be called as sep function 
         # Would be good to extract (1) image, and (2) leading three paras. FOR A FUTURE BUILD
-        guardian_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
-                                              retrieval_datetime.day,retrieval_datetime.hour,\
-                                              retrieval_datetime.minute,'Guardian','Most viewed - News',str(headline), str(link)]).T
+        guardian_frame = pd.DataFrame(data = [retrieval_datetime.strftime('%Y/%m/%d %H:%M'),\
+                                              'Guardian','Most viewed - News',str(headline), str(link)]).T
         guardian_extract = guardian_extract.append(guardian_frame)
     for i in range(0,len(long_read_html_chunk)):
         headline = guardian_html_chunk[i].a.span.span.get_text()
@@ -134,8 +133,8 @@ def retrieve_guardian_most_viewed():
                                               retrieval_datetime.day,retrieval_datetime.hour,\
                                               retrieval_datetime.minute,'Guardian','Most viewed - Longread',str(headline), str(link)]).T
         guardian_extract = guardian_extract.append(guardian_frame)
-    guardian_extract = guardian_extract.rename(columns = {0:'Year',1:'Month',2:'Day',3:'Hour',4:'Minute',\
-                                                          5:'Source', 6:'Type', 7:'Headline', 8:'Link'})
+    guardian_extract = guardian_extract.rename(columns = {0:'Date & Time',\
+                                                          1:'Source', 2:'Type', 3:'Headline', 4:'Link'})
     return(guardian_extract)
     
 # The Times
@@ -155,20 +154,19 @@ def retrieve_times_world_page():
         
     times_extract = pd.DataFrame()
     for i in range(0,len(times_html_extr)):
-        curr_chunk = times_html_extr[i].contents #NOTE: .contents finds the children of a node! :)
+        curr_chunk = times_html_extr[i].contents #NOTE: .contents finds the children of a node
         for j in range(0,len(curr_chunk)):
             #full_text = curr_chunk[j].get_text() # Unused for now - We can extract intro para text here (for i=0 only)
             if i == 0:
                 headline = curr_chunk[j].a.get_text() #First section of the nested for-loop has a diff structure
             else:
                 headline = curr_chunk[j].get_text()
-            link = curr_chunk[j].a['href']
-            times_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
-                                              retrieval_datetime.day,retrieval_datetime.hour,\
-                                              retrieval_datetime.minute,'Times', 'Headlines', str(headline), str(link)]).T
+            link = 'https://www.thetimes.co.uk' + curr_chunk[j].a['href']
+            times_frame = pd.DataFrame(data = [retrieval_datetime.strftime('%Y/%m/%d %H:%M'),\
+                                               'Times', 'Headlines', str(headline), str(link)]).T
             times_extract = times_extract.append(times_frame)
-    times_extract = times_extract.rename(columns = {0:'Year',1:'Month',2:'Day',3:'Hour',4:'Minute',\
-                                                          5:'Source', 6:'Type', 7:'Headline', 8:'Link'})
+    times_extract = times_extract.rename(columns = {0:'Date & Time',\
+                                                    1:'Source', 2:'Type', 3:'Headline', 4:'Link'})
     return(times_extract)
 
 
@@ -193,13 +191,12 @@ def retrieve_economist_most_viewed():
         text_extr_ele_1 = curr_chunk.findAll('span', {'class':'flytitle-and-title__flytitle'})[0].get_text()
         text_extr_ele_2 = curr_chunk.findAll('span', {'class':'flytitle-and-title__title'})[0].get_text()
         headline = text_extr_ele_1 +': \n' +text_extr_ele_2
-        link = curr_chunk.article.a['href']
-        economist_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
-                                              retrieval_datetime.day,retrieval_datetime.hour,\
-                                              retrieval_datetime.minute,'Economist', 'Headlines', str(headline), str(link)]).T
+        link = 'https://www.economist.com' + curr_chunk.article.a['href']
+        economist_frame = pd.DataFrame(data = [retrieval_datetime.strftime('%Y/%m/%d %H:%M'),\
+                                               'Economist', 'Headlines', str(headline), str(link)]).T
         economist_extract = economist_extract.append(economist_frame)
-    economist_extract = economist_extract.rename(columns = {0:'Year',1:'Month',2:'Day',3:'Hour',4:'Minute',\
-                                                            5:'Source', 6:'Type', 7:'Headline', 8:'Link'})
+    economist_extract = economist_extract.rename(columns = {0:'Date & Time',\
+                                                            1:'Source', 2:'Type', 3:'Headline', 4:'Link'})
     return(economist_extract)
     
 def retrieve_FT_most_viewed():
@@ -221,13 +218,12 @@ def retrieve_FT_most_viewed():
     for i in range(0,len(temp)):
         curr_chunk = temp[i]
         headline = curr_chunk.get_text()
-        link = curr_chunk.div.div.div.a['href']
-        ft_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
-                                        retrieval_datetime.day,retrieval_datetime.hour,\
-                                        retrieval_datetime.minute,'Financial Times', 'Most Viewed', str(headline), str(link)]).T
+        link = 'https://www.ft.com' + curr_chunk.div.div.div.a['href']
+        ft_frame = pd.DataFrame(data = [retrieval_datetime.strftime('%Y/%m/%d %H:%M'),\
+                                        'Financial Times', 'Most Viewed', str(headline), str(link)]).T
         ft_extract = ft_extract.append(ft_frame)
-    ft_extract = ft_extract.rename(columns = {0:'Year',1:'Month',2:'Day',3:'Hour',4:'Minute',\
-                                              5:'Source', 6:'Type', 7:'Headline', 8:'Link'})
+    ft_extract = ft_extract.rename(columns = {0:'Date & Time',\
+                                              1:'Source', 2:'Type', 3:'Headline', 4:'Link'})
     return(ft_extract)
 
 def retrieve_independent_top_stories():
@@ -237,7 +233,7 @@ def retrieve_independent_top_stories():
     """
     indep_html_RAW= simple_get(r'https://www.independent.co.uk')
     retrieval_datetime = datetime.datetime.now()
-    # NOTE - I had to mess with simple_get because requests.get(url) returns a 404. It's a weak fix for now.
+    # NOTE - I had to mess with simple_get because requests.get(url) returns a 404.
     # This was because of independent.co.uk blocking User-Agent as python.
     # Longer term, need to randomise User-Agent and ID that are sent. It'd be good if I could actually learn what is happening behind this!
     indep_html = BeautifulSoup(indep_html_RAW, 'html.parser')
@@ -247,7 +243,7 @@ def retrieve_independent_top_stories():
     indep_html_extr_8_block = indep_html_cut.findAll('div', {'class':'eight-articles-dmpu position-left'})[0]
     indep_html_top = indep_html_cut.findAll('div', {'class':'splash-row'})[0]
     indep_html_extr = [indep_html_extr_8_block, indep_html_top]
-    # Have given up for now - too bored doing the same old scraping! :) 
+    # Have given up for now - too bored doing to continue scraping
     
     
     
