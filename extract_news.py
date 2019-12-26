@@ -129,9 +129,8 @@ def retrieve_guardian_most_viewed():
     for i in range(0,len(long_read_html_chunk)):
         headline = guardian_html_chunk[i].a.span.span.get_text()
         link = guardian_html_chunk[i].a['href']
-        guardian_frame = pd.DataFrame(data = [retrieval_datetime.year,retrieval_datetime.month,\
-                                              retrieval_datetime.day,retrieval_datetime.hour,\
-                                              retrieval_datetime.minute,'Guardian','Most viewed - Longread',str(headline), str(link)]).T
+        guardian_frame = pd.DataFrame(data = [retrieval_datetime.strftime('%Y/%m/%d %H:%M'),\
+                                              'Guardian','Most viewed - Longread',str(headline), str(link)]).T
         guardian_extract = guardian_extract.append(guardian_frame)
     guardian_extract = guardian_extract.rename(columns = {0:'Date & Time',\
                                                           1:'Source', 2:'Type', 3:'Headline', 4:'Link'})
