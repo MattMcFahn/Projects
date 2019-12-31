@@ -8,7 +8,6 @@ Daily server update script (to run through task manager)
 import news_summary
 import postgres_helper as pg_help
 
-
 if __name__ == '__main__':
     ## Extract news data from web
     news_df = news_summary.retreive_daily_news_summary()
