@@ -66,7 +66,7 @@ def retreive_daily_news_summary():
 ##################################################################################
 
 
-def weekely_email_update():
+def weekly_email_update():
     """
     Sends an email with the latest weekly server data pulled out, reminding me to jump onto the webpage.
     """

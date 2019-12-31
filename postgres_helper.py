@@ -47,6 +47,13 @@ def __cut_duplicate_primary_keys(dataframe, primary_key):
     deduped_df = dataframe.drop(columns = {'Row dupe','Dupe primary'})
     return deduped_df
 
+def __test_table_for_inconsistencies(dataframe, table_name):
+    """
+    Given a dataframe to be appended to a database table, tests whether there are inconsistencies
+    Inconsistencies are where introducing the dataframe would invalidate uniqueness of the primary_key
+    
+    """
+
 
 ##################################################################################
 # Supporting functions - Close

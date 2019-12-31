@@ -180,8 +180,8 @@ def retrieve_economist_most_viewed():
 
 
     temp = economist_html.body.div.div
-    temp2 = temp.findAll('div', {"class": "standout-content"})[0].div.main.div.div.div.div.div.div.ul
-    economist_html_extr = temp2.findAll('li')
+    temp = temp.findAll('div', {"class": "standout-content"})[0].div.main.div.div.div.div.div.div.ul
+    economist_html_extr = temp.findAll('li')
     
     economist_extract = pd.DataFrame()
     for i in range(0,len(economist_html_extr)):
