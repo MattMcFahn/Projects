@@ -38,18 +38,36 @@ import smtplib # For sending emails, which follow the SMTP protocol
 # Function to retrieve news info (Extract & Transform)
 ##################################################################################
 def retreive_daily_news_summary():
-    guardian_extract = extract_news.retrieve_guardian_most_viewed()
-    times_extract = extract_news.retrieve_times_world_page()
-    economist_extract = extract_news.retrieve_economist_most_viewed()
-    ft_extract = extract_news.retrieve_FT_most_viewed()
+    news_list_df = [] #Initalise blank list to append to
+    try:
+        guardian_extract = extract_news.retrieve_guardian_most_viewed()
+        news_list_df += [guardian_extract]
+    except:
+        print('<<<Issue extracting Guardian data. Check functionality>>>')
+    try:    
+        times_extract = extract_news.retrieve_times_world_page()
+        news_list_df += [times_extract]
+    except:
+        print('<<<Issue extracting Times data. Check functionality>>>')
+    try:
+        economist_extract = extract_news.retrieve_economist_most_viewed()
+        news_list_df += [economist_extract]
+    except:
+        print('<<<Issue extracting Economist data. Check functionality>>>')
+    try:
+        ft_extract = extract_news.retrieve_FT_most_viewed()
+        news_list_df += [ft_extract]
+    except:
+        print('<<<Issue extracting FT data. Check functionality>>>')
+    
     # indep_extract = extract_news.retrieve_independent_top_stories()
     
     # Combine all
-    news_df_list = [guardian_extract, times_extract, economist_extract, ft_extract]
-    news_df = pd.concat(news_df_list)
+    news_df = pd.concat(news_list_df)
     # TODO - Add a check for any null values being pulled through and throw up error / warning
-    news_df = news_df.rename(columns = {'Date & Time': 'datetime', 'Source': 'newssource', 'Type': 'article_type',
-                                        'Headline': 'headline', 'Link': 'weblink'}) # Should really replace in the retrieve functions
+    news_df = news_df.rename(columns = {'Date & Time': 'datetime', 'Source': 'newssource', 
+                                        'Type': 'article_type', 'Headline': 'headline', 'Link': 'weblink'}) 
+                                        # Should really replace in the retrieve functions
     # Reset index
     news_df = news_df.reset_index(drop = True)
     # Add primary and (perhaps) foreign keys
