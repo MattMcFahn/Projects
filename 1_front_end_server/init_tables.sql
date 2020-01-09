@@ -1,19 +1,19 @@
 CREATE TABLE dated_headlines_log(
-dated_article_key VARCHAR(200) PRIMARY KEY,
-article_key VARCHAR(180) NOT NULL,
+dated_article_key TEXT PRIMARY KEY,
+article_key TEXT NOT NULL,
 datetime TIMESTAMP NOT NULL,
-newssource VARCHAR(30) NOT NULL,
-article_type VARCHAR(80) NOT NULL,
-headline VARCHAR(80) NOT NULL,
-weblink VARCHAR(150) NOT NULL
+newssource TEXT NOT NULL,
+article_type TEXT NOT NULL,
+headline TEXT NOT NULL,
+weblink TEXT NOT NULL
 );
 
 CREATE TABLE headlines_master(
-article_key VARCHAR(180) PRIMARY KEY,
+article_key TEXT PRIMARY KEY,
 datetime TIMESTAMP NOT NULL,
-newssource VARCHAR(30) NOT NULL,
-article_type VARCHAR(80) NOT NULL,
-headline VARCHAR(80) NOT NULL,
-weblink VARCHAR(150) NOT NULL
+newssource TEXT NOT NULL,
+article_type TEXT NOT NULL,
+headline TEXT NOT NULL,
+weblink TEXT NOT NULL
 );
 
