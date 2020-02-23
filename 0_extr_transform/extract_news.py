@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Backup script containing functions to pull most viewed stories from news sites
+Functions to pull most viewed stories from select news sites
 
 News sites currently covered:
     - The Guardian;
@@ -9,23 +9,22 @@ News sites currently covered:
     - The Financial Times;
     - The Independent.
     
-NOTE: A key 'to-do' will be to go back and extract extra info - i.e. leading paras from the stories, and images
+* TO DO: A key 'to-do' will be to go back and extract extra info - i.e. leading paras from the stories, and images
 and so forth. To build and kind of decent looking front end, this will all be needed.
 
-NOTE: Need to start randomising User-Agents and IP Addresses to stop getting blocked from scraping.
-      This webpage https://www.scrapehero.com/how-to-fake-and-rotate-user-agents-using-python-3/
-      Is useful in teaching how to do this.
+* TO DO: Need to start randomising User-Agents and IP Addresses to stop getting blocked from scraping.
+         This webpage https://www.scrapehero.com/how-to-fake-and-rotate-user-agents-using-python-3/
+         Is useful in teaching how to do this.
 
 Created on Fri Nov 22 09:43:18 2019
 
 @author: Matthew.McFahn
 """
 
-############## Import libraries
-from requests import get #For HTTP requests (pulls html into a bytes data type for wrangling)
+from requests import get 
 from requests.exceptions import RequestException 
-from contextlib import closing #For good practice to ensure closing of connections to webpage on exiting with commands.
-from bs4 import BeautifulSoup # For webscraping. Works with bytes/html pulled via requests
+from contextlib import closing 
+from bs4 import BeautifulSoup 
 import pandas as pd
 import datetime
 
@@ -86,18 +85,17 @@ def simple_get(url):
             return None
 
 ##################################################################################
-# Set up supporting functions  - Finished
+# Supporting functions  - Finished
 ##################################################################################
 
 ##################################################################################
-# Functions to pull from webpages
+# Retrieval functions 
 ##################################################################################
         
 # Guardian
-
 def retrieve_guardian_most_viewed():
     """
-    None -> List
+    None -> pd.DataFrame
     Returns a list of tagged headlines and news links from The Guardian's main page,
     extracting most viewed stories (plus timestamp)
     """
@@ -118,11 +116,11 @@ def retrieve_guardian_most_viewed():
         link = guardian_html_chunk[i].a['href']
         # FOR LATER - PULL EXTRA INFO, WEBLINKS, TEXT ETC.
         # Probably want to write something as a seperate function - access guardian link
-        # and pull any extra relevant info from there :)
         #temp_html_RAW = simple_get(link)
         #temp_html = BeautifulSoup(temp_html_RAW, 'html.parser')
         ##################### The above has been left in but should be called as sep function 
-        # Would be good to extract (1) image, and (2) leading three paras. FOR A FUTURE BUILD
+        # TODO
+        # Would be good to extract (1) image, and (2) leading three paras.
         guardian_frame = pd.DataFrame(data = [retrieval_datetime.strftime('%Y/%m/%d %H:%M'),\
                                               'Guardian','Most viewed - News',str(headline), str(link)]).T
         guardian_extract = guardian_extract.append(guardian_frame)
@@ -141,7 +139,6 @@ def retrieve_times_world_page():
     """
     None -> pd.DataFrame
     Returns information about the top stories on The Times' homepage.
-    NOTE: This could probably do with being tidied. The Times source code has a weird layout
     """
     times_html_RAW = simple_get(r'https://www.thetimes.co.uk/#section-world')
     retrieval_datetime = datetime.datetime.now()
@@ -186,7 +183,7 @@ def retrieve_economist_most_viewed():
     economist_extract = pd.DataFrame()
     for i in range(0,len(economist_html_extr)):
         curr_chunk = economist_html_extr[i]
-        full_text = curr_chunk.get_text()
+        # full_text = curr_chunk.get_text()
         text_extr_ele_1 = curr_chunk.findAll('span', {'class':'flytitle-and-title__flytitle'})[0].get_text()
         text_extr_ele_2 = curr_chunk.findAll('span', {'class':'flytitle-and-title__title'})[0].get_text()
         headline = text_extr_ele_1 +': \n' +text_extr_ele_2
@@ -206,10 +203,6 @@ def retrieve_FT_most_viewed():
     ft_html_RAW = simple_get(r'https://www.ft.com/world')
     retrieval_datetime = datetime.datetime.now()
     ft_html = BeautifulSoup(ft_html_RAW, 'html.parser')
-    ######### NOTE - These temps show the main ones, not sidebar where "most viewed is"
-    #temp = ft_html.findAll('div', {'class' :'css-grid__container'})[0].div.div
-    #temp2 = temp.findAll('div', {'class':'o-teaser__content'})
-    #############
     
     ft_html_extr = ft_html.findAll('div', {'class' :'css-grid__sidebar-item'})[1].div.div
     temp = ft_html_extr.findAll('li')
@@ -242,10 +235,9 @@ def retrieve_independent_top_stories():
     indep_html_extr_8_block = indep_html_cut.findAll('div', {'class':'eight-articles-dmpu position-left'})[0]
     indep_html_top = indep_html_cut.findAll('div', {'class':'splash-row'})[0]
     indep_html_extr = [indep_html_extr_8_block, indep_html_top]
-    # Have given up for now - too bored doing to continue scraping
-    
+    # TODO - Finish function
     
     
 ##################################################################################
-# Functions to pull from webpages - END
+# Retrieval functions - Finished
 ##################################################################################

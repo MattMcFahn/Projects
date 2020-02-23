@@ -7,56 +7,76 @@ Created on Thu Dec 26 15:56:16 2019
 @author: mattm
 """
 
-# ------------------------------------------------------------------------------------------------#
-
 import psycopg2 as pg2
+import pandas.io.sql as sqlio
 import config
- 
 
 ##################################################################################
-# Supporting functions
+# Helper functions
 ##################################################################################
 
-def __cut_duplicate_primary_keys(dataframe, primary_key):
+def __cut_duplicates(dataframe, table_name):
     """
-    Dataframe -> Dataframe
-    Functionality: Recursive logic
+    Pd.DataFrame -> pd.DataFrame
     
-    Cuts duplicate rows from a dataframe based on a primary key, as specified
-    If the whole record is non unique, but has a duplicated primary key:
-        - A warning is issued;
-        - Both entries are passed, with a ' (1)' appended to the second instance's primary key
-    
+    Tests the data retrieved against the existing sql table, and drops duplicate keys
     """
-    dataframe['Row dupe'] = dataframe.duplicated()
-    dataframe['Dupe primary'] = dataframe.duplicated(subset = primary_key)
+    print('<<<Removing duplicates from data retrieved ...>>>')
+    # Connect to the database
+    conn = pg2.connect(database='news_summary', 
+                       user="postgres", 
+                       host = 'localhost', 
+                       password = config.passwords['postgresql'])
+    # Pull table data for checking
+    select_call = '''SELECT * FROM {}'''.format(table_name)
+    existing_df = sqlio.read_sql_query(select_call, conn)
     
-    if all(not dataframe['Row dupe'][i] for i in range(0, len(dataframe))): # No row duplicates
-        if all(not dataframe['Dupe primary'][i] for i in range(0, len(dataframe))): # No primary_key duplicates either
-            pass 
-            print('<<< No duplicates in data pulled>>')
-        else: # All rows unique, but some primary keys duped
-            dataframe.loc[dataframe['Dupe primary'] == True, [primary_key]] += [' (1)']
-            print("<<<WARNING: Duplicate story pulled with some differences. Review today's upload>>>")
-            pass
-    else: # i.e. there was a full row duplicate, which is dropped
-        dataframe = dataframe.loc[dataframe['Row Dupe'] == True]
-        dataframe.drop(columns = {'Row dupe','Dupe primary'})
-        __cut_duplicate_primary_keys(dataframe, primary_key) # Recursion on the function. Next call will have no row dupes
+    # Combine to look for dupes
+    full_df = existing_df.append(dataframe)
+    full_df['duplicated'] = full_df.duplicated(['headline','newssource','weblink'], keep=False)
     
-    deduped_df = dataframe.drop(columns = {'Row dupe','Dupe primary'})
-    return deduped_df
-
-def __test_table_for_inconsistencies(dataframe, table_name):
+    # Cut back to retrieved data, split into dupes & dedupes
+    n = len(full_df)
+    original_df = full_df[n-len(dataframe):n]
+    
+    
+    unique_df = original_df.loc[original_df['duplicated'] == False]
+    unique_df.drop(columns=['duplicated'], inplace=True)
+    
+    duplicates_df = original_df.loc[original_df['duplicated'] == True]
+    duplicates_df.drop(columns=['duplicated'], inplace=True)    
+    
+    new_stories_num = len(dataframe) - len(unique_df)
+    print('Of {} stories retrieved in this call, {} were unique'.format(len(dataframe),
+                                                                        new_stories_num))
+    print('<<<Removing duplicates from data retrieved ... COMPLETE>>>')
+    return (unique_df, duplicates_df)
+  
+def __insert_data_sql(insert, dataframe, cur, table):
     """
-    Given a dataframe to be appended to a database table, tests whether there are inconsistencies
-    Inconsistencies are where introducing the dataframe would invalidate uniqueness of the primary_key
-    
+    Simple helper to add data to existing sql tables
     """
+    # iter through rows and append 
+    for row in range(0, len(dataframe),1):
+        if table == 'daily_headlines':
+            cur.execute(insert, (dataframe['dated_article_key'][row],
+                                 dataframe['article_key'][row],
+                                 dataframe['datetime'][row],
+                                 dataframe['newssource'][row],
+                                 dataframe['article_type'][row],
+                                 dataframe['headline'][row],
+                                 dataframe['weblink'][row]))    
+        elif table == 'headlines_unique':
+            cur.execute(insert, (dataframe['article_key'][row],
+                                 dataframe['datetime'][row],
+                                 dataframe['newssource'][row],
+                                 dataframe['article_type'][row],
+                                 dataframe['headline'][row],
+                                 dataframe['weblink'][row]))    
 
 
 ##################################################################################
-# Supporting functions - Close
+# Helper functions
 ##################################################################################
 
 
@@ -78,7 +98,7 @@ def update_server(dataframe):
     """
     # Prep the data extract to remove dupes
     print('<<< Checking for duplicates in the daily_headlines primary key >>>')
-    daily_headlines_df = __cut_duplicate_primary_keys(dataframe, 'dated_article_key')
+    unique_df, dupes_df = __cut_duplicates(dataframe, 'daily_headlines')
     
     # Connect to the database
     conn = pg2.connect(database='news_summary', 
@@ -87,19 +107,21 @@ def update_server(dataframe):
                        password = config.passwords['postgresql'])
     # Retrieve the cursor
     cur = conn.cursor()
-    # general query to append daily headlines data
-    daily_headlines_insert = '''INSERT INTO daily_headlines 
-                                (dated_article_key, article_key, datetime, newssource, article_type, headline, weblink)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s)'''
-    # iter through rows and append
-    for row in range(0, len(daily_headlines_df),1):
-        cur.execute(daily_headlines_insert, (daily_headlines_df['dated_article_key'][row],
-                                             daily_headlines_df['article_key'][row],
-                                             daily_headlines_df['datetime'][row],
-                                             daily_headlines_df['newssource'][row],
-                                             daily_headlines_df['article_type'][row],
-                                             daily_headlines_df['headline'][row],
-                                             daily_headlines_df['weblink'][row]))
+    
+    # Inserting unique records
+    insert_temp = '''INSERT INTO {} 
+                    (dated_article_key, article_key, datetime, newssource, article_type, headline, weblink)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)'''
+    
+    ## Table: daily_headlines
+    insert_daily = insert_temp.format('daily_headlines')
+    __insert_data_sql(insert_daily, unique_df, cur, 'daily_headlines')    
+    # Table: headlines_unique
+    insert_unique = insert_temp.format('headlines_unique')    
+    __insert_data_sql(insert_unique, unique_df, cur, 'headlines_unique')
+
+    # Add counts for dupes
+    # TODO    
     
     # Close connections
     conn.commit()
